@@ -7,7 +7,7 @@ export const getProductById = async (event) => {
 
     const product = products.filter((product) => product.id == productId);
 
-    if (product.lenghth == 0) {
+    if (product.length === 0) {
       return {
         statusCode: 404,
         body: "no product found with this id",
