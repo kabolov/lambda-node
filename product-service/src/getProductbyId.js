@@ -1,18 +1,33 @@
-import products from "./products.json";
+const { Client } = require("pg");
+
+const { PG_HOST, PG_PORT, PG_DATABASE, PG_USERNAME, PG_PASSWORD } = process.env;
+const dbOptions = {
+  host: PG_HOST,
+  port: PG_PORT,
+  database: PG_DATABASE,
+  user: PG_USERNAME,
+  password: PG_PASSWORD,
+  ssl: {
+    rejectUnauthorized: false, // to avoid warring in this example
+  },
+  connectionTimeoutMillis: 5000, // time in millisecond for termination of the database query
+};
 
 export const getProductById = async (event) => {
   try {
     console.log("Lambda invocation with event: ", event);
+
     const { productId } = event.pathParameters;
 
-    const product = products.filter((product) => product.id == productId);
+    const client = new Client(dbOptions);
+    await client.connect();
 
-    if (product.length === 0) {
-      return {
-        statusCode: 404,
-        body: "no product found with this id",
-      };
-    }
+    const {
+      rows: product,
+    } = await client.query(
+      `select p.id, p.description, p.price, p.title, s.count from products p left join stocks s on s.product_id = p.id where p.id = $1`,
+      [productId]
+    );
 
     return {
       headers: {
