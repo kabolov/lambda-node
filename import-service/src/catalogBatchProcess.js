@@ -1,4 +1,5 @@
 const { Client } = require("pg");
+const AWS = require("aws-sdk");
 
 const { PG_HOST, PG_PORT, PG_DATABASE, PG_USERNAME, PG_PASSWORD } = process.env;
 const dbOptions = {
@@ -16,6 +17,8 @@ const dbOptions = {
 const catalogBatchProcess = async (event) => {
   const client = new Client(dbOptions);
   await client.connect();
+
+  const sns = new AWS.SNS({ region: "eu-west-1" });
 
   try {
     event.Records.forEach(async ({ body }) => {
@@ -41,6 +44,17 @@ const catalogBatchProcess = async (event) => {
         [newId]
       );
     });
+
+    sns.publish(
+      {
+        Subject: "Email from amazon",
+        Message: "New products created",
+        TopicArn: process.env.SNS_ARN,
+      },
+      () => {
+        console.log("email sent");
+      }
+    );
 
     return {
       headers: {
