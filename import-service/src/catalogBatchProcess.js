@@ -19,7 +19,8 @@ const catalogBatchProcess = async (event) => {
 
   try {
     event.Records.forEach(async ({ body }) => {
-      const { title, description, price, count } = body;
+      console.log(body);
+      const { title, description, price, count } = JSON.parse(body);
 
       const {
         rows,
