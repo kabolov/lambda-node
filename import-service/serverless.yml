@@ -8,6 +8,17 @@ provider:
   stage: dev
   region: eu-west-1
 
+  environment:
+    SQS_URL:
+      Ref: SQSQueue
+    SNS_ARN:
+      Ref: SNSTopic
+    PG_HOST: lesson4-instance.c3zxepihdznj.eu-west-1.rds.amazonaws.com
+    PG_PORT: 5432
+    PG_DATABASE: lesson4
+    PG_USERNAME: postgres
+    PG_PASSWORD: wwIJ7CchntfGgnOsOzxk
+
   iamRoleStatements:
     - Effect: "Allow"
       Action: "s3:ListBucket"
@@ -17,6 +28,42 @@ provider:
       Action: "s3:*"
       Resource:
         - "arn:aws:s3:::import-product-service/*"
+    - Effect: "Allow"
+      Action: "sqs:*"
+      Resource:
+        - Fn::GetAtt: [SQSQueue, Arn]
+    - Effect: "Allow"
+      Action: "sns:*"
+      Resource:
+        Ref: SNSTopic
+
+resources:
+  Resources:
+    SQSQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: catalogItemsQueue
+    SNSTopic:
+      Type: AWS::SNS::Topic
+      Properties:
+        TopicName: createProductTopic
+    SNSSubscription:
+      Type: AWS::SNS::Subscription
+      Properties:
+        Endpoint: alexander.kabolov@gmail.com
+        Protocol: email
+        TopicArn:
+          Ref: SNSTopic
+    SNSSubscription2:
+      Type: AWS::SNS::Subscription
+      Properties:
+        Endpoint: aleksandr.kabolov@gmail.com
+        Protocol: email
+        TopicArn:
+          Ref: SNSTopic
+        FilterPolicy:
+          title:
+            - Product1
 
 functions:
   importProductsFile:
@@ -39,3 +86,12 @@ functions:
           rules:
             - prefix: uploaded/
           existing: true
+  catalogBatchProcess:
+    handler: handler.catalogBatchProcess
+    events:
+      - sqs:
+          batchSize: 5
+          arn:
+            Fn::GetAtt:
+              - SQSQueue
+              - Arn

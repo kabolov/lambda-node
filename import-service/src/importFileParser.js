@@ -6,6 +6,7 @@ const BUCKET_NAME = "import-product-service";
 const importFileParser = async (event) => {
   const { key } = event.Records[0]["s3"]["object"];
   const s3 = new AWS.S3({ region: "eu-west-1" });
+  const sqs = new AWS.SQS();
   const params = {
     Bucket: BUCKET_NAME,
     Key: key,
@@ -13,14 +14,21 @@ const importFileParser = async (event) => {
   try {
     const s3Stream = s3.getObject(params).createReadStream();
 
-    console.log(`${BUCKET_NAME}/${key}`);
-    console.log(key.replace("uploaded", "parsed"));
-
     await new Promise((resolve, reject) => {
       s3Stream
         .pipe(csv())
         .on("data", (data) => {
           console.log(data);
+          sqs.sendMessage(
+            {
+              QueueUrl: process.env.SQS_URL,
+              MessageBody: JSON.stringify(data),
+            },
+            (error, data) => {
+              if (error) console.log("!!!!!!!!!!!!!!!", error);
+              console.log(data);
+            }
+          );
         })
         .on("error", (e) => {
           console.log(e);
