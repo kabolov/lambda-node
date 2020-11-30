@@ -10,6 +10,7 @@ const basicAuthorizer = (event, ctx, callback) => {
     const buffer = Buffer.from(encodedCreds, "base64");
     const [username, password] = buffer.toString("utf-8").split(":");
 
+    console.log(username, password);
     const storedUserPassword = process.env[username];
     const effect =
       !storedUserPassword || storedUserPassword != password ? "Deny" : "Allow";
