@@ -64,6 +64,34 @@ resources:
         FilterPolicy:
           title:
             - Product1
+    # This response is needed for custom authorizer failures cors support ¯\_(ツ)_/¯
+    GatewayResponseUnauthorized:
+      Type: "AWS::ApiGateway::GatewayResponse"
+      Properties:
+        ResponseParameters:
+          gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+          gatewayresponse.header.Access-Control-Allow-Headers: "'*'"
+        ResponseType: UNAUTHORIZED
+        RestApiId:
+          Ref: "ApiGatewayRestApi"
+    GatewayResponseAccessDenied:
+      Type: "AWS::ApiGateway::GatewayResponse"
+      Properties:
+        ResponseParameters:
+          gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+          gatewayresponse.header.Access-Control-Allow-Headers: "'*'"
+        ResponseType: ACCESS_DENIED
+        RestApiId:
+          Ref: "ApiGatewayRestApi"
+    GatewayResponseAuthorizerFailure:
+      Type: "AWS::ApiGateway::GatewayResponse"
+      Properties:
+        ResponseParameters:
+          gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+          gatewayresponse.header.Access-Control-Allow-Headers: "'*'"
+        ResponseType: AUTHORIZER_FAILURE
+        RestApiId:
+          Ref: "ApiGatewayRestApi"
 
 functions:
   importProductsFile:
@@ -77,6 +105,19 @@ functions:
             parameters:
               querystrings:
                 name: true
+          authorizer:
+            name: kabolovAuth
+            arn: !Join
+              - ":"
+              - - "arn:aws:lambda"
+                - !Ref AWS::Region
+                - !Ref AWS::AccountId
+                - "function:authorization-service-dev-basicAuthorizer"
+            managedExternally: false
+            resultTtlInSeconds: 0
+            identitySource: method.request.header.Authorization
+            type: token
+
   importFileParser:
     handler: handler.importFileParser
     events:
